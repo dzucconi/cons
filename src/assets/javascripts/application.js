@@ -7,7 +7,9 @@ let init = () => {
   'use strict';
 
   let $window = $(window);
-  let $el = $('.js-stage');
+  let $stage = $('.js-stage');
+  let $overlay = $('.js-overlay');
+
   let join = _.join('');
   let underscorify = _.replace(/ /g, '_');
   let windows = _.aperture(50, _.split('', text));
@@ -20,41 +22,30 @@ let init = () => {
     return `<a href='#/${x}' class='line js-line'>${y}</a>`;
   };
 
-  $el.html(_.map(template, encoded));
+  $stage.html(_.map(template, encoded));
 
-  let lh = (($el) => () => $el.outerHeight())($('.js-line'));
+  let $line = $('.js-line');
+  let lh = () => $line.outerHeight();
 
   let offset = () => {
     let x = lh();
-    $el.css({ marginBottom: ~~($window.height() / x) * x });
+    $stage.css({ marginBottom: ~~($window.height() / x) * x });
   };
 
   offset();
 
-  let { index, position } = (lh, paths) => {
-    return {
-      index: () => {
-        return ~~($window.scrollTop() / lh());
-      },
+  let index = () => ~~($window.scrollTop() / lh());
 
-      position: (path) => {
-        return paths.indexOf(path) * lh();
-      }
-    };
-  }(lh, paths);
+  let position = (path) => paths.indexOf(path) * lh();
 
-  let currentPath = () => {
-    return paths[index()];
-  };
+  let currentPath = () => paths[index()];
 
   let updatePath = () => {
     let x = currentPath();
     if (x) history.replaceState(null, null, `#/${x}`);
   };
 
-  let updateOverlay = ($el) => {
-    return () => $el.text(encodedMap[currentPath()]);
-  }($('.js-overlay'));
+  let updateOverlay = () => $overlay.text(encodedMap[currentPath()]);
 
   $window
     .on('resize', throttle(offset, 200))
@@ -65,9 +56,7 @@ let init = () => {
 
   let pathOnInit = location.hash.replace(/^#(\/)?/, '');
 
-  if (pathOnInit) {
-    window.scrollTo(0, position(pathOnInit));
-  };
+  if (pathOnInit) window.scrollTo(0, position(pathOnInit));
 
   window.addEventListener('hashchange', (e) => {
     window.scrollTo(0, position(e.newURL.split('#/')[1]));
