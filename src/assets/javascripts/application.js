@@ -8,7 +8,6 @@ let init = () => {
 
   let $window = $(window);
   let $el = $('.js-stage');
-
   let join = _.join('');
   let underscorify = _.replace(/ /g, '_');
   let windows = _.aperture(50, _.split('', text));
@@ -23,11 +22,7 @@ let init = () => {
 
   $el.html(_.map(template, encoded));
 
-  let lh = ($el) => {
-    return () => {
-      return $el.outerHeight()
-    }
-  }($('.js-line'));
+  let lh = (($el) => () => $el.outerHeight())($('.js-line'));
 
   let offset = () => {
     let x = lh();
@@ -58,9 +53,7 @@ let init = () => {
   };
 
   let updateOverlay = ($el) => {
-    return () => {
-      $el.text(encodedMap[currentPath()]);
-    }
+    return () => $el.text(encodedMap[currentPath()]);
   }($('.js-overlay'));
 
   $window
@@ -78,7 +71,7 @@ let init = () => {
 
   window.addEventListener('hashchange', (e) => {
     window.scrollTo(0, position(e.newURL.split('#/')[1]));
-  })
+  });
 };
 
 $(init);
