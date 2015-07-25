@@ -1,58 +1,84 @@
 import $ from 'jquery';
 import _ from 'ramda';
-import LocationBar from 'location-bar';
 import throttle from 'lodash.throttle';
-import { text } from './text';
+import text from './text';
 
-import Overlay from './overlay';
-import Stage from './stage';
+let init = () => {
+  'use strict';
 
-let apertureSize = 50;
-let windows = _.aperture(apertureSize, _.split('', text));
-let paths = _.map(_.compose(_.replace(/ /g, '_'), _.join('')), windows);
-
-let locationBar = new LocationBar;
-locationBar.start({ pushState: false });
-
-$(() => {
   let $window = $(window);
+  let $el = $('.js-stage');
 
-  let stage = new Stage({
-    $window: $window,
-    $el: $('.js-stage'),
-    paths: paths
-  });
+  let join = _.join('');
+  let underscorify = _.replace(/ /g, '_');
+  let windows = _.aperture(50, _.split('', text));
+  let transform = _.compose(underscorify, join);
+  let encoded = _.map((x) => { return [transform(x), join(x)]; }, windows);
+  let encodedMap = _.fromPairs(encoded);
+  let paths = _.map(_.head, encoded);
 
-  let overlay = new Overlay({
-    stage: stage,
-    $el: $('.js-overlay')
-  });
+  let template = ([x, y]) => {
+    return `<a href='#/${x}' class='line js-line'>${y}</a>`;
+  };
 
-  stage.render();
-  stage.setOffset();
+  $el.html(_.map(template, encoded));
+
+  let lh = ($el) => {
+    return () => {
+      return $el.outerHeight()
+    }
+  }($('.js-line'));
+
+  let offset = () => {
+    let x = lh();
+    $el.css({ marginBottom: ~~($window.height() / x) * x });
+  };
+
+  offset();
+
+  let { index, position } = (lh, paths) => {
+    return {
+      index: () => {
+        return ~~(document.body.scrollTop / lh());
+      },
+
+      position: (path) => {
+        return paths.indexOf(path) * lh();
+      }
+    };
+  }(lh, paths);
+
+  let currentPath = () => {
+    return paths[index()];
+  };
 
   let updatePath = () => {
-    locationBar.update(stage.path(), {
-      trigger: false, replace: true
-    });
+    let x = currentPath();
+    if (x) history.replaceState(null, null, `#/${x}`);
   };
 
-  let update = _.compose(
-    throttle(overlay.render.bind(overlay), 50),
-    throttle(updatePath, 200)
-  );
+  let updateOverlay = ($el) => {
+    return () => {
+      $el.text(encodedMap[currentPath()]);
+    }
+  }($('.js-overlay'));
 
   $window
-    .on('resize', throttle(stage.setOffset.bind(stage), 200))
-    .on('scroll', update);
+    .on('resize', throttle(offset, 200))
+    .on('scroll', _.compose(
+      throttle(updateOverlay, 50),
+      throttle(updatePath, 200)
+    ));
 
-  let currentPath = location.hash.replace(/^#(\/)?/, '');
-  if (currentPath) {
-    window.scrollTo(0, stage.position(currentPath));
+  let pathOnInit = location.hash.replace(/^#(\/)?/, '');
+
+  if (pathOnInit) {
+    window.scrollTo(0, position(pathOnInit));
   };
 
-  locationBar.onChange((path) => {
-    window.scrollTo(0, stage.position(path));
-  });
+  window.addEventListener('hashchange', (e) => {
+    window.scrollTo(0, position(e.newURL.split('#/')[1]));
+  })
+};
 
-});
+$(init);
