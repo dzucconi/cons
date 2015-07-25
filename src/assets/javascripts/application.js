@@ -34,7 +34,7 @@ let init = () => {
   let { index, position } = (lh, paths) => {
     return {
       index: () => {
-        return ~~(document.body.scrollTop / lh());
+        return ~~($window.scrollTop() / lh());
       },
 
       position: (path) => {
